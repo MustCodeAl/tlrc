@@ -24,6 +24,7 @@ struct RenderStyles {
     url: Style,
     inline_code: Style,
     placeholder: Style,
+    command_name: Style,
 }
 
 pub struct PageRenderer<'a> {
@@ -53,6 +54,7 @@ impl<'a> PageRenderer<'a> {
 
         let mut buf = String::new();
 
+
         for (i, part) in split.into_iter().enumerate() {
             // Only odd indexes contain the part to be highlighted.
             // "aa `bb` cc `dd` ee"
@@ -61,6 +63,9 @@ impl<'a> PageRenderer<'a> {
             // 2: " cc "
             // 3: "dd"      (highlighted)
             // 4: " ee"
+
+
+
             if i % 2 == 0 {
                 buf += &style_normal.paint(part).to_string();
             } else {
@@ -105,9 +110,17 @@ impl<'a> PageRenderer<'a> {
 
     fn hl_placeholder(&self, s: &str, style_normal: Style) -> String {
         let split: Vec<&str> = s.split("{{").collect();
+
+        // split by position of first whitespace
+
+
         // Highlight beginning not found.
         if split.len() == 1 {
-            return style_normal.paint(s).to_string();
+            let no_arg: Vec<&str> = s.splitn(2, ' ').collect();
+
+            let no_arg_cmd = (*no_arg.last().expect("not description found")).to_string();
+
+            return style_normal.paint(no_arg_cmd).to_string();
         }
 
         let mut buf = String::new();
@@ -136,8 +149,10 @@ impl<'a> PageRenderer<'a> {
             }
         }
 
-        buf
+        let buf: Vec<&str> = buf.splitn(2, ' ').collect();
+        (*buf.last().expect("not description found")).to_string()
     }
+
 
     /// Print or render the page according to the provided config.
     pub fn print(path: &'a Path, cfg: &'a Config) -> Result<()> {
@@ -165,10 +180,11 @@ impl<'a> PageRenderer<'a> {
                 url: cfg.style.url.into(),
                 inline_code: cfg.style.inline_code.into(),
                 placeholder: cfg.style.placeholder.into(),
+                command_name: cfg.style.command_name.into(),
             },
             cfg,
         }
-        .render()
+            .render()
     }
 
     /// Print the first page that was found and warnings for every other page.
@@ -295,15 +311,28 @@ impl<'a> PageRenderer<'a> {
                     .describe("\nEvery line with an example must end with a backtick '`'.")
             })?;
 
+
+        // strip command name if it exists
+
+        // let example = example.strip_prefix(cmd_name).expect("command name not found");
+        let cmd_line = line;
+
+
         let example = self
             .hl_placeholder(line, self.style.example)
             // Remove the extra spaces and backslashes.
             .replace(" \\{\\{ ", "{{")
             .replace(" \\}\\} ", "}}");
 
+
+        let cmd_name = *cmd_line.splitn(2, ' ').collect::<Vec<&str>>().first().expect("no command found");
+
+        let cmd_name_painted = self.style.command_name.paint(cmd_name).to_string();
+
+
         writeln!(
             self.stdout,
-            "{}{example}",
+            "{}{cmd_name_painted} {example}",
             " ".repeat(self.cfg.indent.example),
         )?;
 
@@ -318,6 +347,13 @@ impl<'a> PageRenderer<'a> {
 
         Ok(())
     }
+
+    /// Write a command name to the page buffer as an example.
+
+
+
+
+
 
     /// Render the page to standard output.
     fn render(&mut self) -> Result<()> {

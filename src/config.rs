@@ -92,6 +92,7 @@ pub struct StyleConfig {
     pub url: OutputStyle,
     pub inline_code: OutputStyle,
     pub placeholder: OutputStyle,
+    pub command_name: OutputStyle,
 }
 
 impl Default for StyleConfig {
@@ -157,6 +158,15 @@ impl Default for StyleConfig {
                 bold: false,
                 underline: false,
                 italic: true,
+                dim: false,
+                strikethrough: false,
+            },
+            command_name: OutputStyle {
+                color: OutputColor::Yellow,
+                background: OutputColor::default(),
+                bold: false,
+                underline: false,
+                italic: false,
                 dim: false,
                 strikethrough: false,
             },
